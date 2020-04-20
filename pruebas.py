@@ -11,5 +11,6 @@ deltas = np.array([[0.0, 0.0, 0.0 ,0.0, 0.0],[0.0]])
 #weights = np.array(random_weights(samples,nodes))
 #bias = np.array(random_bias(nodes))
 
-print(np.dot([1,2,3],[1,2,3]))
-print(np.zeros(3)+1)
+a = np.array([1,2])
+b = a
+print(np.dot(a,b))

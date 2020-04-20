@@ -40,25 +40,70 @@ def calculate_nodes(samples_i, nodes, weights, bias, method):
 			nodes[i][j] = squash(method, net)
 	return nodes
 
+#backwards process to calculate deltas, gradients and new weights
+def calculate_gradients(sample, weights, nodes, outputs, learning_rate):
+	deltas = weights*0
+	gradients = weights*0
+	new_weights = weights*0
+	for i in range(len(deltas[-1])):#We first start with the last weights
+		for j in range(len(deltas[-1][i])):
+			out = nodes[-1][i]
+			target = outputs[i]
+			deltas[-1][i][j] = (out-target)*out*(1-out)
+			gradients[-1][i][j] = deltas[-1][i][j]*nodes[-2][j]
+			new_weights[-1][i][j] = weights[-1][i][j] - learning_rate*gradients[-1][i][j]
+
+	layers = len(deltas)-1
+	for i in range(layers):#All layers except the last, backwards, until layer 0
+		for j in range(len(deltas[i])):
+			for k in range(len(deltas[i][j])):
+				out = nodes[layers-1-i][j]
+				t_d = deltas[layers-i].T
+				t_w = weights[layers-i].T
+				deltas[layers-1-i][j][k] = np.dot(t_d[j],t_w[j])*out*(1-out)
+				if i == 0:#Work with sample values then
+					gradients[layers-1-i][j][k] = deltas[layers-1-i][j][k] * sample[k]
+				else:
+					gradients[layers-1-i][j][k] = deltas[layers-1-i][j][k] * nodes[layers-1-i][k]
+				new_weights[layers-1-i][j][k] = weights[layers-1-i][j][k] - learning_rate*gradients[layers-1-i][j][k]
+	#return deltas
+	#return gradients
+	return new_weights
+
 def calculate_new_weights(learning_rate, samples, outputs, nodes, weights, bias, deltas, method):
 	total_error = 0
 	for i in range(len(samples)):
 		nodes = calculate_nodes(samples[i], nodes, weights, bias, method)
+		#print(nodes)#hyp(x)
 		sample_error = calculate_sample_error(nodes[-1],outputs[i])#One set of outputs for each set of samples
 		total_error += sample_error
+		print("Iteration: %i. Error: %f" %(i+1,total_error))
+
+		actual_sample = i%len(samples)
+		weights = calculate_gradients(samples[actual_sample], weights, nodes, outputs[actual_sample], learning_rate)
 	__errors__.append(total_error)
+
+################################################################################
+##############################THE ALGORITHM STARTS##############################
+################################################################################
 
 learning_rate = 0.5
 __errors__ = []
 
 #Data
-samples = np.array([[1.,1.],[0.,1.],[1.,0.],[0.,0.]]) 
-outputs = np.array([[0.],[1.],[1.],[0.]])
+#samples = np.array([[1.,1.],[0.,1.],[1.,0.],[0.,0.]]) 
+#outputs = np.array([[0.],[1.],[1.],[0.]])
+samples = np.array([[.05,.10]])
+outputs = np.array([[.01,.99]])
+
 
 #Forward pass
-nodes = np.array([[0.0, 0.0, 0.0 ,0.0, 0.0],[0.0]])
-weights = np.array(init_weights(samples,nodes))
-bias = np.zeros(len(nodes))+0.5
+#nodes = np.array([[0.0, 0.0, 0.0 ,0.0, 0.0],[0.0]])
+#weights = np.array(init_weights(samples,nodes))
+#bias = np.zeros(len(nodes))+0.5
+nodes = np.array([[.0,.0],[.0,.0]])
+weights = np.array([[[.15,.20],[.25,.30]],[[.40,.45],[.50,.55]]])
+bias = np.array([.35,.60])
 
 #Backward
 deltas = np.array([[0.0, 0.0, 0.0 ,0.0, 0.0],[0.0]])
@@ -66,10 +111,19 @@ deltas = np.array([[0.0, 0.0, 0.0 ,0.0, 0.0],[0.0]])
 #Method definition
 method = "sigmoid"
 
+#Error estimation for the first time, this won't affect future results
+total_error = 0
+for i in range(len(samples)):
+	nodes = calculate_nodes(samples[i], nodes, weights, bias, method)
+	#print(nodes)#hyp(x)
+	sample_error = calculate_sample_error(nodes[-1],outputs[i])#One set of outputs for each set of samples
+	total_error += sample_error
+	print("Iteration: 0. Error: %f" %(total_error))
 
-for i in range(10):
+#Backpropagation
+for i in range(1):
 	calculate_new_weights(learning_rate, samples, outputs, nodes, weights, bias, deltas, method)
 
-import matplotlib.pyplot as plt
+'''import matplotlib.pyplot as plt
 plt.plot(__errors__)
-plt.show()
+plt.show()'''
