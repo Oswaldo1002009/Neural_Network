@@ -1,6 +1,15 @@
 import math
 import numpy as np
 import random
+import copy
+
+#creates a new array with the same size but using zeros
+def clone_zeros(l):
+	for i in range(len(l)):
+		for j in range(len(l[i])):
+			for k in range(len(l[i][j])):
+				l[i][j][k]=0.0
+	return l
 
 #initialice weights witn random numbers
 def init_weights(samples, nodes):
@@ -11,11 +20,13 @@ def init_weights(samples, nodes):
 			w[i][j] = []
 			if i == 0:
 				for k in range(len(samples[0])):
-					w[i][j].append(random.random())
+					#w[i][j].append(random.random())
+					w[i][j].append(0.5)
 			else:
 				for k in range(len(nodes[i-1])):
-					w[i][j].append(random.random())
-	return w
+					#w[i][j].append(random.random())
+					w[i][j].append(0.5)
+	return list(w)
 
 #activation function
 def squash(method,net):
@@ -25,7 +36,7 @@ def squash(method,net):
 		return max(net,0)
 
 def calculate_sample_error(outputs, true_outputs):
-	sample_error = 0
+	sample_error = 0.0
 	for i in range(len(outputs)):
 		sample_error += ((outputs[i] - true_outputs[i])**2)/2.0
 	return(sample_error)
@@ -42,9 +53,10 @@ def calculate_nodes(samples_i, nodes, weights, bias, method):
 
 #backwards process to calculate deltas, gradients and new weights
 def calculate_gradients(sample, weights, nodes, outputs, learning_rate):
-	deltas = weights*0
-	gradients = weights*0
-	new_weights = weights*0
+	z = np.array(clone_zeros(copy.deepcopy(weights)))
+	deltas = copy.deepcopy(z)
+	gradients = copy.deepcopy(z)
+	new_weights = copy.deepcopy(z)
 	for i in range(len(deltas[-1])):#We first start with the last weights
 		for j in range(len(deltas[-1][i])):
 			out = nodes[-1][i]
@@ -58,8 +70,8 @@ def calculate_gradients(sample, weights, nodes, outputs, learning_rate):
 		for j in range(len(deltas[i])):
 			for k in range(len(deltas[i][j])):
 				out = nodes[layers-1-i][j]
-				t_d = deltas[layers-i].T
-				t_w = weights[layers-i].T
+				t_d = np.array(deltas[layers-i]).T
+				t_w = np.array(weights[layers-i]).T
 				deltas[layers-1-i][j][k] = np.dot(t_d[j],t_w[j])*out*(1-out)
 				if i == 0:#Work with sample values then
 					gradients[layers-1-i][j][k] = deltas[layers-1-i][j][k] * sample[k]
@@ -70,17 +82,14 @@ def calculate_gradients(sample, weights, nodes, outputs, learning_rate):
 	#return gradients
 	return new_weights
 
-def calculate_new_weights(learning_rate, samples, outputs, nodes, weights, bias, deltas, method):
-	total_error = 0
+def calculate_error(iteration, samples, outputs, nodes, weights, bias, method):
+	total_error = 0.0
 	for i in range(len(samples)):
 		nodes = calculate_nodes(samples[i], nodes, weights, bias, method)
 		#print(nodes)#hyp(x)
 		sample_error = calculate_sample_error(nodes[-1],outputs[i])#One set of outputs for each set of samples
 		total_error += sample_error
-		print("Iteration: %i. Error: %f" %(i+1,total_error))
-
-		actual_sample = i%len(samples)
-		weights = calculate_gradients(samples[actual_sample], weights, nodes, outputs[actual_sample], learning_rate)
+	print("Iteration: %i. Error: %f" %(iteration+1,total_error))
 	__errors__.append(total_error)
 
 ################################################################################
@@ -112,18 +121,14 @@ deltas = np.array([[0.0, 0.0, 0.0 ,0.0, 0.0],[0.0]])
 method = "sigmoid"
 
 #Error estimation for the first time, this won't affect future results
-total_error = 0
-for i in range(len(samples)):
-	nodes = calculate_nodes(samples[i], nodes, weights, bias, method)
-	#print(nodes)#hyp(x)
-	sample_error = calculate_sample_error(nodes[-1],outputs[i])#One set of outputs for each set of samples
-	total_error += sample_error
-	print("Iteration: 0. Error: %f" %(total_error))
+calculate_error(-1, samples, outputs, nodes, weights, bias, method)
 
 #Backpropagation
-for i in range(1):
-	calculate_new_weights(learning_rate, samples, outputs, nodes, weights, bias, deltas, method)
+for i in range(10000):
+	actual_sample = i%len(samples)
+	weights = calculate_gradients(samples[actual_sample], weights, nodes, outputs[actual_sample], learning_rate)
+	calculate_error(i, samples, outputs, nodes, weights, bias, method)
 
-'''import matplotlib.pyplot as plt
-plt.plot(__errors__)
-plt.show()'''
+import matplotlib.pyplot as plt
+#plt.plot(__errors__)
+#plt.show()
